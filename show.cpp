@@ -5,6 +5,7 @@
 #include "Player.h"
 #include "Enemy.h"
 #include "Status.h"
+#include "Command.h"
 using namespace std;
 
 vector<string> Show::logBuffer_;
@@ -27,57 +28,146 @@ static const vector<string> Enemy_AA =
 "( /￣∪"
 };
 
+int Show::selectTarget(const vector<Enemy*>& enemy) 
+{
+    // 表示の開始座標
+    int startX = 35; // 横方向（列）
+    int startY = 15; // 縦方向（行）
+
+    while (true) 
+    {
+        //ターゲットリストの描画
+        // 上枠
+        cout << "\033[" << startY << ";" << startX << "H" << "------- TARGET -------";
+        
+        for (size_t i = 0; i < enemy.size(); i++) 
+        {
+            int row = startY + 1 + i;
+            // 左右の枠
+            cout << "\033[" << row << ";" << startX << "H" << "|";
+            cout << "\033[" << row << ";" << (startX + 22) << "H" << "|";
+            
+            // リストの中身
+            cout << "\033[" << row << ";" << (startX + 2) << "H" << "\033[20X";
+            if (enemy[i]->is_alive()) 
+            {
+                cout << (i + 1) << ": " << enemy[i]->getStatus()->getName();
+            } else 
+            {
+                // 倒れている敵は選択できないようにグレーで表示
+                cout << "\033[90m" << (i + 1) << ": " << enemy[i]->getStatus()->getName() << " [DEAD]\033[m";
+            }
+        }
+        
+        //下枠
+        int bottomRow = startY + 1 + enemy.size();
+        cout << "\033[" << bottomRow << ";" << startX << "H" << "----------------------";
+
+        //入力選択フェーズ
+        cout << "\033[25;5H" << "\033[K" << "対象の番号を選んでください (1-" << enemy.size() << ") > " << flush;
+        
+        int key = getch();
+        if (key == 27) return -1; // Escキーでキャンセル
+
+        int index = key - '1';
+
+        // 有効な番号かつ生きている敵かチェック
+        if (index >= 0 && index < (int)enemy.size() && enemy[index]->is_alive()) 
+        {
+            string targetName = enemy[index]->getStatus()->getName();
+
+            // 確認フェーズ (Y/N)
+            while (true) 
+            {
+                cout << "\033[25;5H" << "\033[K" << targetName << " でよろしいですか？ (Y/N) > " << flush;
+                
+                int confKey = getch();
+
+                // 'Y' または 'Enter' で確定
+                if (confKey == 'y' || confKey == 'Y' || confKey == 10 || confKey == 13) 
+                {
+                    return index; // ターゲット決定！
+                }
+                
+                // 'N' または 'Esc' でキャンセルして選択に戻る
+                if (confKey == 'n' || confKey == 'N' || confKey == 27) 
+                {
+                    break; // 内側のループ（確認）を抜けて、外側のループ（選択）の最初へ
+                }
+            }
+        }
+        else 
+        {
+            // 無効な入力や倒れている敵を選んだ場合
+            cout << " 正しい番号を選んでください。";
+            cout.flush();
+            usleep(1500000); // 1.5秒だけ警告を表示
+        }
+    }
+}
+
 int Show::displayCommandList(const vector<int>& playerSkillIds) 
 {
-    //コマンドリストの表示 
+    // 表示フェーズ
+    int startRow = 15;
     //上枠
-    cout << "\033[15;3H" << "----------------------------"; 
+    cout << "\033[" << startRow << ";3H" << "----------------------------"; 
 
     //技リストの描画
     for (size_t i = 0; i < playerSkillIds.size(); i++)
     {
         CommandData cmd = CommandMaster::Getter(playerSkillIds[i]);
-        int row = 16 + i; 
+        int row = startRow + 1 + i; 
         
-        // 左右の枠
+        //左右の枠
         cout << "\033[" << row << ";3H" << "|"; 
         cout << "\033[" << row << ";30H" << "|";
         
-        // 技名表示
+        //技名表示
         cout << "\033[" << row << ";5H" << "\033[24X" 
              << (i + 1) << ": " << cmd.name << " (MP:" << cmd.mpCost << ")";
     }
 
     //下枠
-    int bottomRow = 16 + playerSkillIds.size();
+    int bottomRow = startRow + 1 + playerSkillIds.size();
     cout << "\033[" << bottomRow << ";3H" << "----------------------------"; 
-    
-    //入力ガイドを表示
-    cout << "\033[" << bottomRow + 1 << ";5H" << "コマンドを選択 (1-" << playerSkillIds.size() << ") > " << flush;
 
-    int key = getch();
-    int index = key - '1';
-
-        // 有効な数字が押されたら確認フェーズへ
-    if (index >= 0 && index < (int)playerSkillIds.size()) 
+    // 入力選択フェーズ
+    while (true) 
     {
-        CommandData selectedCmd = CommandMaster::Getter(playerSkillIds[index]);
+        //入力ガイドを表示
+        cout << "\033[" << bottomRow + 1 << ";5H" << "\033[K" 
+             << "コマンドを選択 (1-" << playerSkillIds.size() << ") > " << flush;
 
-        // ② 確認ループ
-        while (true) 
+        int key = getch();
+        if (key == 27) return -1; //Escキーでキャンセル（Stageに戻る）
+
+        int index = key - '1'; //ASCIIコードから添字に変換
+
+        //有効な数字が押されたかチェック
+        if (index >= 0 && index < (int)playerSkillIds.size()) 
         {
-            cout << "\033[" << bottomRow + 1 << ";5H" << "\033[K"  << selectedCmd.name << " でよろしいですか？ (Y/N) > " << flush;
-            int confKey = getch();
-            // 'Y' または 'Enter' (10 or 13) で確定
-            if (confKey == 'y' || confKey == 'Y' || confKey == 10 || confKey == 13) 
+            CommandData selectedCmd = CommandMaster::Getter(playerSkillIds[index]);
+
+            //確認フェーズ (Y/N)
+            while (true) 
             {
-                 return playerSkillIds[index]; 
-            }
+                cout << "\033[" << bottomRow + 1 << ";5H" << "\033[K" 
+                     << selectedCmd.name << " でよろしいですか？ (Y/N) > " << flush;
                 
-            // 'N' または 'Esc' でキャンセルして選択に戻る
-            if (confKey == 'n' || confKey == 'N' || confKey == 27) 
-            {
-                break; 
+                int confKey = getch();
+
+                //Yまたはnterで確定
+                if (confKey == 'y' || confKey == 'Y' || confKey == 10 || confKey == 13) 
+                {
+                    return playerSkillIds[index]; //決定したスキルIDを返す
+                }
+                
+                //Nたは Escでキャンセルして選択に戻る
+                if (confKey == 'n' || confKey == 'N' || confKey == 27) 
+                {
+                    break; 
+                }
             }
         }
     }
@@ -166,7 +256,7 @@ void Show::draw(Player* player, const vector<Enemy*>& enemy)
             << "\033[" << (startY + 1) << ";" << (startX + 1) << "H" << " HP:" << enemy[i]->getStatus()->getHp();
 
             //AA表示
-            for (size_t j = 0; j < ENEMY_AA.size(); j++)
+            for (size_t j = 0; j < Enemy_AA.size(); j++)
             {
                 //下にずらして描画
                 cout << "\033[" << (startY_AA + j) << ";" << startX_AA << "H" << Enemy_AA[j];
@@ -201,11 +291,11 @@ void Show::displayAction(int commandId, const string& actorName)
     switch (commandId) 
     {
         case 1: msg = actorName + " の攻撃！"; break;
-        case 2: msg = actorName + " は身を守った！"; break;
-        case 3: msg = actorName + " の傷が癒えていく..."; break;
-        case 4: msg = actorName + " の攻撃力が上がった！"; break;
-        case 5: msg = actorName + " は逃走した！"; break;
-        case 6: msg = actorName + " はカウンターの構えだ！"; break;
+        case 2: msg = actorName + " の防御！"; break;
+        case 3: msg = actorName + " の回復！"; break;
+        case 4: msg = actorName + " のATKバフ！"; break;
+        case 5: msg = actorName + " の逃げる！"; break;
+        case 6: msg = actorName + " のカウンター！"; break;
         case 7: msg = actorName + " のでんじは！"; break;
     }
 
