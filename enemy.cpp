@@ -1,9 +1,9 @@
-#include "enemy.h"
-#include "commandMaster.h"
+#include "Enemy.h"
+#include "CommandMaster.h"
 #include <random>
 using namespace std;
 
-//コンストラクタ（Unitをnで初期化し、自身のidを設定
+//コンストラクタ（Unitをnで初期化し、自身のidを設定)
 Enemy::Enemy(int i, string n) : Unit(n), id_(i) {}
 
 //コマンド選択

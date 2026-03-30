@@ -1,4 +1,4 @@
-#include "commandMaster.h"
+#include "CommandMaster.h"
 using namespace std;
 
 CommandData CommandMaster::Getter(int id){

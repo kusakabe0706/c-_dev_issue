@@ -1,7 +1,8 @@
-#include "status.h"
+#include "Status.h"
 #include <algorithm>
 using namespace std;
 
+//コンストラクタ
 Status::Status(){
     max_hp_ = 0;
     hp_ = 0;
@@ -11,12 +12,12 @@ Status::Status(){
     spd_ = 0;
     para_turn_ = 0;
     is_para_ = false;
-    is_atk_buff_ = false;
     is_def_ = false;
     is_counter_ = false;
     is_escape_ = false;
 }
 
+//各ステータスのゲッター
 int Status::get_max_hp() const {return max_hp_;}
 int Status::getHp() const {return hp_;}
 int Status::getAtk() const {return atk_;}
@@ -28,6 +29,7 @@ bool Status::get_is_def() const {return is_def_;}
 bool Status::get_is_counter() const {return is_counter_;}
 bool Status::get_is_escape() const {return is_escape_;}
 
+//各ステータスのセッター
 void Status::set_max_hp(int max_hp) {max_hp_ = max_hp;}
 void Status::set_hp(int hp) {hp_ = max(0, min(hp, max_hp_));}
 void Status::set_atk(int atk) {atk_ = atk;}
@@ -40,6 +42,7 @@ void Status::set_para(bool is_para, int para_turns) {is_para_ = is_para; para_tu
 void Status::set_is_counter(bool is_counter) {is_counter_ = is_counter;}
 void Status::set_is_escape(bool is_escape) {is_escape_ = is_escape;}
 
+//ステータスの更新
 void Status::update_status(){
     is_def_ = false;
     is_counter_ = false;

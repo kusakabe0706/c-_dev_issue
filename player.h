@@ -1,9 +1,10 @@
 #pragma once
 #include <vector>
-#include "unit.h"
+#include "Unit.h"
 
 class Player : public Unit{
     private:
+    //プレイヤーが使用可能なコマンドのIDリスト
     std::vector<int> skillid;
     
     public:
