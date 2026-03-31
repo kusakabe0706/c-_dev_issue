@@ -3,7 +3,6 @@
 
 #include <vector>
 
-// 別のファイルで定義されているクラスを使うための宣言（前方宣言）
 class Player;
 class Enemy;
 class Entity;
